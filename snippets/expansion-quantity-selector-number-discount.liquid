@@ -1,0 +1,90 @@
+{% comment %}
+  Accepts:
+  - quantity_2_discount: {integer} discount amount in cents
+  - upsell_message: {string} upsell message
+  - upsell_message_color_scheme: {string} upsell message color scheme (optional)
+
+  Usage:
+  {% render 'expansion-quantity-selector-number-discount', quantity_2_discount: 500, upsell_message: 'please buy more', upsell_message_color_scheme: 'color-scheme-2' %}
+{% endcomment %}
+
+{% comment %} 1 pack option {% endcomment %}
+<div class="tw-flex tw-items-center tw-space-x-4 tw-mb-6">
+  <div
+    class="expansion-quantity-option tw-border tw-border-solid tw-border-[var(--color-foreground)] tw-outline tw-outline-2 tw-outline-offset-2 tw-p-4 tw-pt-6 tw-rounded-xl tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-2 tw-w-[120px] md:tw-w-[160px] tw-cursor-pointer"
+    data-quantity="1"
+  >
+    <span class="h5 tw-text-center0">1 pack</span>
+    <span class="h4 tw-text-center">{{ product.selected_or_first_available_variant.price | money_without_trailing_zeros }}</span>
+  </div>
+
+  {% comment %} 2 pack option {% endcomment %}
+  <div
+    class="expansion-quantity-option tw-relative tw-border tw-border-solid tw-border-[var(--color-foreground)] tw-outline-offset-2 tw-p-4 tw-pt-6 tw-rounded-xl tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-2 tw-w-[180px] md:tw-w-[240px] tw-cursor-pointer"
+    data-quantity="2"
+  >
+    <span class="h5 tw-text-center0">2 pack</span>
+    <span class="h4 tw-text-center">{{ product.selected_or_first_available_variant.price | minus: quantity_2_discount | money_without_trailing_zeros }} each</span>
+    {% if upsell_message %}
+      <span id="upsell-message" class="body-copy-small tw-absolute {{ upsell_message_color_scheme }} tw-px-4 tw-py-1 tw-rounded-xl tw-top-[-15px] tw-right-[-40px]">{{ upsell_message | truncate: 25 }}</span>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+  const quantityInput = document.querySelector('quantity-input input[name="quantity"]');
+
+  // Function to update the active state based on the quantity value
+  function updateActiveState(quantity) {
+    // Remove the active state from all options
+    document.querySelectorAll('.expansion-quantity-option').forEach((opt) => opt.classList.remove('tw-outline', 'tw-outline-2'));
+
+    // Find the option matching the current quantity and add active state
+    let matchingOption;
+    const upsellMessage = document.querySelector('#upsell-message');
+
+    if (quantity > 2) {
+      // If quantity is greater than 2, highlight the 2+ option
+      matchingOption = document.querySelector('.expansion-quantity-option[data-quantity="2"]');
+    } else if (quantity === 2) {
+      matchingOption = document.querySelector(`.expansion-quantity-option[data-quantity="${quantity}"]`);
+      upsellMessage.style.display = 'none';
+    } else {
+      // Otherwise, highlight the option that matches the quantity
+      matchingOption = document.querySelector(`.expansion-quantity-option[data-quantity="${quantity}"]`);
+      upsellMessage.style.display = 'block';
+    }
+
+    if (matchingOption) {
+      matchingOption.classList.add('tw-outline', 'tw-outline-2');
+    }
+  }
+
+  // Handle clicks on custom quantity options
+  document.querySelectorAll('.expansion-quantity-option').forEach((option) => {
+    option.addEventListener('click', function () {
+      const quantity = parseInt(this.getAttribute('data-quantity'));
+
+      // Update the quantity input value
+      quantityInput.value = quantity;
+
+      // Trigger the change event that the QuantityInput class listens for
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Update active state
+      updateActiveState(quantity);
+    });
+  });
+
+  // Listen for manual changes to the quantity input
+  quantityInput.addEventListener('change', function () {
+    const currentQuantity = parseInt(this.value);
+
+    // Update the active state if the manual quantity change matches one of the quantity options
+    updateActiveState(currentQuantity);
+  });
+});
+
+</script>
